@@ -25,7 +25,8 @@ const (
 )
 
 var (
-	state = StateOut
+	state       = StateOut
+	changeState = false
 )
 
 var (
@@ -39,16 +40,20 @@ var (
 		case StateOut:
 			n := bytes.Index(data, left)
 			if n < 0 {
+				changeState = false
 				return l, data, nil
 			}
 
+			changeState = true
 			return n + 2, data[:n+2], nil
 		case StateIn:
 			n := bytes.Index(data, right)
 			if n < 0 {
-				return l, data, errors.New("unclosed brackets")
+				changeState = false
+				return l, data, nil
 			}
 
+			changeState = true
 			return n, data[:n], nil
 		default:
 			return 0, nil, errors.New("invalid state")
@@ -95,14 +100,18 @@ func main() {
 				log.Fatal(err)
 			}
 
-			state = StateIn
+			if changeState {
+				state = StateIn
+			}
 		case StateIn:
 			err := handle(token, w)
 			if err != nil {
 				log.Fatal(err)
 			}
 
-			state = StateOut
+			if changeState {
+				state = StateOut
+			}
 		default:
 			err := errors.New("invalid state")
 			log.Fatal(err)
